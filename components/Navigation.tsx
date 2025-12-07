@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, BookOpen, Apple, Settings } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Apple, Users } from 'lucide-react';
 
 interface NavigationProps {
   currentView: string;
@@ -9,6 +9,7 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ currentView, setView }) => {
   const navItems = [
     { id: 'pets', label: '我的宠物', icon: LayoutDashboard },
+    { id: 'community', label: '宠友圈', icon: Users },
     { id: 'guide', label: '饲养手册', icon: BookOpen },
     { id: 'food', label: '能不能吃', icon: Apple },
   ];

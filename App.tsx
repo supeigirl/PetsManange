@@ -1,34 +1,146 @@
 import React, { useState, useEffect } from 'react';
-import { Pet } from './types';
+import { Pet, User, Post } from './types';
 import { Navigation } from './components/Navigation';
 import { PetManager } from './views/PetManager';
 import { CareGuide } from './views/CareGuide';
 import { FoodChecker } from './views/FoodChecker';
+import { Auth } from './views/Auth';
+import { Community } from './views/Community';
 
 const App: React.FC = () => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState('pets');
   
-  // Load pets from local storage or default to empty array
-  const [pets, setPets] = useState<Pet[]>(() => {
-    const saved = localStorage.getItem('my_pets');
-    return saved ? JSON.parse(saved) : [];
-  });
+  // -- Data State --
+  const [allPets, setAllPets] = useState<Pet[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
 
-  // Persist pets to local storage
+  // -- Initialization --
   useEffect(() => {
-    localStorage.setItem('my_pets', JSON.stringify(pets));
-  }, [pets]);
+    // Check login session
+    const session = localStorage.getItem('app_current_user');
+    if (session) {
+      setCurrentUser(JSON.parse(session));
+    }
+
+    // Load data
+    const savedPets = localStorage.getItem('app_pets');
+    if (savedPets) setAllPets(JSON.parse(savedPets));
+
+    const savedPosts = localStorage.getItem('app_posts');
+    if (savedPosts) setPosts(JSON.parse(savedPosts));
+  }, []);
+
+  // -- Persistence --
+  useEffect(() => {
+    localStorage.setItem('app_pets', JSON.stringify(allPets));
+  }, [allPets]);
+
+  useEffect(() => {
+    localStorage.setItem('app_posts', JSON.stringify(posts));
+  }, [posts]);
+
+  // -- Auth Handlers --
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
+    localStorage.setItem('app_current_user', JSON.stringify(user));
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('app_current_user');
+    setCurrentView('pets');
+  };
+
+  // -- Pet CRUD --
+  // Filter pets for the current user
+  const userPets = allPets.filter(p => p.ownerId === currentUser?.id);
+
+  const handleAddPet = (pet: Pet) => {
+    if (!currentUser) return;
+    const newPet = { ...pet, ownerId: currentUser.id };
+    setAllPets([...allPets, newPet]);
+  };
+
+  const handleUpdatePet = (updatedPet: Pet) => {
+    setAllPets(allPets.map(p => p.id === updatedPet.id ? updatedPet : p));
+  };
+
+  const handleDeletePet = (id: string) => {
+    setAllPets(allPets.filter(p => p.id !== id));
+  };
+
+  // -- Community Handlers --
+  const handleAddPost = (content: string) => {
+    if (!currentUser) return;
+    const newPost: Post = {
+      id: Date.now().toString(),
+      userId: currentUser.id,
+      username: currentUser.username,
+      userAvatar: currentUser.avatar,
+      content,
+      likes: [],
+      comments: [],
+      timestamp: new Date().toISOString()
+    };
+    setPosts([newPost, ...posts]);
+  };
+
+  const handleLikePost = (postId: string) => {
+    if (!currentUser) return;
+    setPosts(posts.map(post => {
+      if (post.id === postId) {
+        const isLiked = post.likes.includes(currentUser.id);
+        const newLikes = isLiked 
+          ? post.likes.filter(id => id !== currentUser.id)
+          : [...post.likes, currentUser.id];
+        return { ...post, likes: newLikes };
+      }
+      return post;
+    }));
+  };
+
+  if (!currentUser) {
+    return <Auth onLogin={handleLogin} />;
+  }
 
   const renderView = () => {
     switch (currentView) {
       case 'pets':
-        return <PetManager pets={pets} setPets={setPets} />;
+        return (
+          <PetManager 
+            currentUser={currentUser}
+            pets={userPets} 
+            onAddPet={handleAddPet}
+            onUpdatePet={handleUpdatePet}
+            onDeletePet={handleDeletePet}
+            onLogout={handleLogout}
+          />
+        );
+      case 'community':
+        return (
+          <Community 
+            currentUser={currentUser}
+            posts={posts}
+            onAddPost={handleAddPost}
+            onLikePost={handleLikePost}
+          />
+        );
       case 'guide':
         return <CareGuide />;
       case 'food':
         return <FoodChecker />;
       default:
-        return <PetManager pets={pets} setPets={setPets} />;
+        return (
+          <PetManager 
+            currentUser={currentUser}
+            pets={userPets} 
+            onAddPet={handleAddPet}
+            onUpdatePet={handleUpdatePet}
+            onDeletePet={handleDeletePet}
+            onLogout={handleLogout}
+          />
+        );
     }
   };
 

@@ -15,6 +15,32 @@ export enum Gender {
   FEMALE = 'Female'
 }
 
+export interface User {
+  id: string;
+  username: string;
+  password: string; // In a real app, never store plain text
+  avatar: string;
+}
+
+export interface Comment {
+  id: string;
+  userId: string;
+  username: string;
+  content: string;
+  timestamp: string;
+}
+
+export interface Post {
+  id: string;
+  userId: string;
+  username: string;
+  userAvatar: string;
+  content: string;
+  likes: string[]; // Array of userIds who liked
+  comments: Comment[];
+  timestamp: string;
+}
+
 export interface MedicalRecord {
   id: string;
   date: string;
@@ -47,6 +73,7 @@ export interface WeightRecord {
 
 export interface Pet {
   id: string;
+  ownerId: string; // Link to User
   name: string;
   type: PetType;
   breed?: string;

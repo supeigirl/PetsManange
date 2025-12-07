@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import { Pet, PetType, DailyLog, MedicalRecord, DewormingRecord, WeightRecord } from '../types';
+import { Pet, PetType, DailyLog, MedicalRecord, DewormingRecord, WeightRecord, User } from '../types';
 import { PetForm } from '../components/PetForm';
-import { Plus, ChevronRight, Activity, Droplets, Utensils, Syringe, Stethoscope, ArrowLeft, Trash2, Scale, Calendar, AlarmClock, Edit3, Save } from 'lucide-react';
+import { Plus, ChevronRight, Activity, Droplets, Utensils, Syringe, Stethoscope, ArrowLeft, Trash2, Scale, Calendar, AlarmClock, Edit3, Save, LogOut } from 'lucide-react';
 
 interface PetManagerProps {
+  currentUser: User;
   pets: Pet[];
-  setPets: React.Dispatch<React.SetStateAction<Pet[]>>;
+  onAddPet: (pet: Pet) => void;
+  onUpdatePet: (pet: Pet) => void;
+  onDeletePet: (id: string) => void;
+  onLogout: () => void;
 }
 
-export const PetManager: React.FC<PetManagerProps> = ({ pets, setPets }) => {
+export const PetManager: React.FC<PetManagerProps> = ({ currentUser, pets, onAddPet, onUpdatePet, onDeletePet, onLogout }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'daily' | 'weight' | 'medical' | 'deworm'>('daily');
@@ -110,30 +114,26 @@ export const PetManager: React.FC<PetManagerProps> = ({ pets, setPets }) => {
   };
 
   const handleAddPet = (pet: Pet) => {
-    setPets([...pets, pet]);
+    onAddPet(pet);
     setShowAddModal(false);
   };
 
   const handleDeletePet = (id: string) => {
     if(confirm('确定要删除这个宠物吗？')) {
-        setPets(pets.filter(p => p.id !== id));
+        onDeletePet(id);
         setSelectedPetId(null);
     }
   }
 
-  const updatePet = (updated: Pet) => {
-    setPets(pets.map(p => p.id === updated.id ? updated : p));
-  };
-
   const saveMemo = () => {
       if (!selectedPet) return;
-      updatePet({ ...selectedPet, memo: memoText });
+      onUpdatePet({ ...selectedPet, memo: memoText });
       setIsEditingMemo(false);
   };
 
   const saveCheckupDate = () => {
       if (!selectedPet) return;
-      updatePet({ ...selectedPet, nextCheckupDate: checkupDate });
+      onUpdatePet({ ...selectedPet, nextCheckupDate: checkupDate });
       setIsEditingCheckup(false);
   };
 
@@ -146,7 +146,7 @@ export const PetManager: React.FC<PetManagerProps> = ({ pets, setPets }) => {
       waterAmount: Number(logWater) || 0
     };
     const updatedPet = { ...selectedPet, dailyLogs: [newLog, ...selectedPet.dailyLogs] };
-    updatePet(updatedPet);
+    onUpdatePet(updatedPet);
     setLogFood('');
     setLogWater('');
   };
@@ -170,7 +170,7 @@ export const PetManager: React.FC<PetManagerProps> = ({ pets, setPets }) => {
         weight: updatedRecords[0].weight 
     };
     
-    updatePet(updatedPet);
+    onUpdatePet(updatedPet);
     setNewWeight('');
   };
 
@@ -183,7 +183,7 @@ export const PetManager: React.FC<PetManagerProps> = ({ pets, setPets }) => {
       description: medDesc
     };
     const updatedPet = { ...selectedPet, medicalRecords: [newRec, ...selectedPet.medicalRecords] };
-    updatePet(updatedPet);
+    onUpdatePet(updatedPet);
     setMedTitle('');
     setMedDesc('');
   };
@@ -198,7 +198,7 @@ export const PetManager: React.FC<PetManagerProps> = ({ pets, setPets }) => {
         type: 'Internal' 
     };
     const updatedPet = { ...selectedPet, dewormingRecords: [newRec, ...selectedPet.dewormingRecords] };
-    updatePet(updatedPet);
+    onUpdatePet(updatedPet);
     setWormName('');
     setWormDate('');
   }
@@ -208,13 +208,27 @@ export const PetManager: React.FC<PetManagerProps> = ({ pets, setPets }) => {
     return (
       <div className="pb-24 pt-6 px-4 max-w-lg mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">我的萌宠</h1>
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="bg-indigo-600 text-white p-2 rounded-full shadow-lg hover:bg-indigo-700 transition-all"
-          >
-            <Plus size={24} />
-          </button>
+          <div className="flex items-center space-x-3">
+             <img src={currentUser.avatar} className="w-10 h-10 rounded-full border-2 border-white shadow-sm" alt="User" />
+             <div>
+                <h1 className="text-xl font-bold text-gray-800">你好, {currentUser.username}</h1>
+                <p className="text-xs text-gray-500">今天也要好好照顾它们哦</p>
+             </div>
+          </div>
+          <div className="flex space-x-2">
+             <button
+                onClick={onLogout}
+                className="bg-white text-gray-600 p-2 rounded-full shadow-sm border border-gray-100 hover:bg-gray-50"
+             >
+                <LogOut size={20} />
+             </button>
+             <button 
+                onClick={() => setShowAddModal(true)}
+                className="bg-indigo-600 text-white p-2 rounded-full shadow-lg hover:bg-indigo-700 transition-all"
+             >
+                <Plus size={24} />
+             </button>
+          </div>
         </div>
 
         {pets.length === 0 ? (
@@ -314,9 +328,11 @@ export const PetManager: React.FC<PetManagerProps> = ({ pets, setPets }) => {
       );
   };
 
-  const nextDewormDate = selectedPet.dewormingRecords.length > 0 ? selectedPet.dewormingRecords[0].nextDueDate : undefined;
+  const nextDewormDate = selectedPet && selectedPet.dewormingRecords.length > 0 ? selectedPet.dewormingRecords[0].nextDueDate : undefined;
 
   // --- Render Detail View ---
+  if (!selectedPet) return null;
+
   return (
     <div className="pb-24 bg-gray-50 min-h-screen">
       {/* Header */}

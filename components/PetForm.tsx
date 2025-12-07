@@ -34,6 +34,7 @@ export const PetForm: React.FC<PetFormProps> = ({ onSave, onCancel }) => {
     const initialWeight = parseFloat(weight) || 0;
     const newPet: Pet = {
       id: Date.now().toString(),
+      ownerId: '', // Placeholder, will be overwritten by parent component
       name,
       type,
       gender,
