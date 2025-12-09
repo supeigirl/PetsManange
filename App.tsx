@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Pet, User, Post } from './types';
+import { Pet, User, Post, Comment } from './types';
 import { Navigation } from './components/Navigation';
 import { PetManager } from './views/PetManager';
 import { CareGuide } from './views/CareGuide';
@@ -100,6 +100,24 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleAddComment = (postId: string, content: string) => {
+    if (!currentUser) return;
+    setPosts(posts.map(post => {
+      if (post.id === postId) {
+        const newComment: Comment = {
+          id: Date.now().toString(),
+          userId: currentUser.id,
+          username: currentUser.username,
+          userAvatar: currentUser.avatar,
+          content,
+          timestamp: new Date().toISOString()
+        };
+        return { ...post, comments: [...post.comments, newComment] };
+      }
+      return post;
+    }));
+  };
+
   if (!currentUser) {
     return <Auth onLogin={handleLogin} />;
   }
@@ -124,6 +142,7 @@ const App: React.FC = () => {
             posts={posts}
             onAddPost={handleAddPost}
             onLikePost={handleLikePost}
+            onAddComment={handleAddComment}
           />
         );
       case 'guide':

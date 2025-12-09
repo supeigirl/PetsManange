@@ -26,6 +26,7 @@ export interface Comment {
   id: string;
   userId: string;
   username: string;
+  userAvatar: string;
   content: string;
   timestamp: string;
 }
@@ -87,6 +88,7 @@ export interface Pet {
   dailyLogs: DailyLog[];
   memo?: string; // Personality and preferences
   nextCheckupDate?: string; // Target date for next vet visit
+  nextDewormDate?: string; // Target date for next deworming
 }
 
 export enum SafetyLevel {

@@ -7,11 +7,14 @@ interface CommunityProps {
   posts: Post[];
   onAddPost: (content: string) => void;
   onLikePost: (postId: string) => void;
+  onAddComment: (postId: string, content: string) => void;
 }
 
-export const Community: React.FC<CommunityProps> = ({ currentUser, posts, onAddPost, onLikePost }) => {
+export const Community: React.FC<CommunityProps> = ({ currentUser, posts, onAddPost, onLikePost, onAddComment }) => {
   const [newPostContent, setNewPostContent] = useState('');
   const [showInput, setShowInput] = useState(false);
+  const [activeCommentPostId, setActiveCommentPostId] = useState<string | null>(null);
+  const [commentContent, setCommentContent] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +22,21 @@ export const Community: React.FC<CommunityProps> = ({ currentUser, posts, onAddP
     onAddPost(newPostContent);
     setNewPostContent('');
     setShowInput(false);
+  };
+
+  const handleCommentSubmit = (e: React.FormEvent, postId: string) => {
+    e.preventDefault();
+    if (!commentContent.trim()) return;
+    onAddComment(postId, commentContent);
+    setCommentContent('');
+  };
+
+  const toggleComments = (postId: string) => {
+    if (activeCommentPostId === postId) {
+      setActiveCommentPostId(null);
+    } else {
+      setActiveCommentPostId(postId);
+    }
   };
 
   const getTimeAgo = (timestamp: string) => {
@@ -76,6 +94,8 @@ export const Community: React.FC<CommunityProps> = ({ currentUser, posts, onAddP
         ) : (
           posts.map(post => {
             const isLiked = post.likes.includes(currentUser.id);
+            const isCommentOpen = activeCommentPostId === post.id;
+
             return (
               <div key={post.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                 <div className="flex items-center mb-3">
@@ -97,11 +117,56 @@ export const Community: React.FC<CommunityProps> = ({ currentUser, posts, onAddP
                     <span>{post.likes.length > 0 ? post.likes.length : '赞'}</span>
                   </button>
                   
-                  <button className="flex items-center space-x-1 text-sm text-gray-400 hover:text-gray-600">
+                  <button 
+                    onClick={() => toggleComments(post.id)}
+                    className={`flex items-center space-x-1 text-sm transition-colors ${isCommentOpen ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
                     <MessageCircle size={18} />
-                    <span>评论</span>
+                    <span>{post.comments.length > 0 ? post.comments.length : '评论'}</span>
                   </button>
                 </div>
+
+                {/* Comment Section */}
+                {isCommentOpen && (
+                  <div className="mt-4 pt-3 border-t border-gray-50 animate-fade-in">
+                    {/* Comment List */}
+                    <div className="space-y-3 mb-4">
+                      {post.comments.map(comment => (
+                        <div key={comment.id} className="flex items-start space-x-2">
+                          <img src={comment.userAvatar} alt={comment.username} className="w-6 h-6 rounded-full bg-gray-200" />
+                          <div className="flex-1 bg-gray-50 rounded-lg p-2">
+                             <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs font-bold text-gray-700">{comment.username}</span>
+                                <span className="text-[10px] text-gray-400">{getTimeAgo(comment.timestamp)}</span>
+                             </div>
+                             <p className="text-xs text-gray-600">{comment.content}</p>
+                          </div>
+                        </div>
+                      ))}
+                      {post.comments.length === 0 && (
+                        <p className="text-xs text-center text-gray-400 py-2">还没有评论，快来抢沙发~</p>
+                      )}
+                    </div>
+
+                    {/* Comment Input */}
+                    <form onSubmit={(e) => handleCommentSubmit(e, post.id)} className="flex items-center space-x-2">
+                       <input 
+                          type="text"
+                          value={commentContent}
+                          onChange={(e) => setCommentContent(e.target.value)}
+                          placeholder="写下你的评论..."
+                          className="flex-1 bg-gray-50 border-transparent focus:bg-white focus:border-indigo-300 border rounded-full px-4 py-2 text-sm outline-none transition-all"
+                       />
+                       <button 
+                          type="submit"
+                          disabled={!commentContent.trim()}
+                          className="text-indigo-600 disabled:text-gray-300 p-1"
+                       >
+                          <Send size={18} />
+                       </button>
+                    </form>
+                  </div>
+                )}
               </div>
             );
           })

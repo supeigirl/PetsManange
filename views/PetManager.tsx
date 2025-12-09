@@ -41,6 +41,10 @@ export const PetManager: React.FC<PetManagerProps> = ({ currentUser, pets, onAdd
   const [checkupDate, setCheckupDate] = useState('');
   const [isEditingCheckup, setIsEditingCheckup] = useState(false);
 
+  // Deworm Date State (For the reminder card)
+  const [reminderDewormDate, setReminderDewormDate] = useState('');
+  const [isEditingDeworm, setIsEditingDeworm] = useState(false);
+
   const selectedPet = pets.find(p => p.id === selectedPetId);
 
   // Update local state when selected pet changes
@@ -48,6 +52,10 @@ export const PetManager: React.FC<PetManagerProps> = ({ currentUser, pets, onAdd
     if (selectedPet) {
         setMemoText(selectedPet.memo || '');
         setCheckupDate(selectedPet.nextCheckupDate || '');
+        // Prioritize the top-level nextDewormDate, fallback to the latest record's next due date
+        const calculatedNextDeworm = selectedPet.nextDewormDate || 
+            (selectedPet.dewormingRecords.length > 0 ? selectedPet.dewormingRecords[0].nextDueDate : '');
+        setReminderDewormDate(calculatedNextDeworm);
     }
   }, [selectedPetId, selectedPet]);
 
@@ -137,6 +145,12 @@ export const PetManager: React.FC<PetManagerProps> = ({ currentUser, pets, onAdd
       setIsEditingCheckup(false);
   };
 
+  const saveReminderDewormDate = () => {
+      if (!selectedPet) return;
+      onUpdatePet({ ...selectedPet, nextDewormDate: reminderDewormDate });
+      setIsEditingDeworm(false);
+  };
+
   const addDailyLog = () => {
     if (!selectedPet) return;
     const newLog: DailyLog = {
@@ -197,7 +211,12 @@ export const PetManager: React.FC<PetManagerProps> = ({ currentUser, pets, onAdd
         nextDueDate: wormDate,
         type: 'Internal' 
     };
-    const updatedPet = { ...selectedPet, dewormingRecords: [newRec, ...selectedPet.dewormingRecords] };
+    // Sync the next due date to the pet's main reminder field as well
+    const updatedPet = { 
+        ...selectedPet, 
+        nextDewormDate: wormDate || selectedPet.nextDewormDate,
+        dewormingRecords: [newRec, ...selectedPet.dewormingRecords] 
+    };
     onUpdatePet(updatedPet);
     setWormName('');
     setWormDate('');
@@ -290,6 +309,12 @@ export const PetManager: React.FC<PetManagerProps> = ({ currentUser, pets, onAdd
           iconColor = 'text-orange-500';
       }
 
+      const isEditing = type === 'checkup' ? isEditingCheckup : isEditingDeworm;
+      const setEditing = type === 'checkup' ? setIsEditingCheckup : setIsEditingDeworm;
+      const currentDateValue = type === 'checkup' ? checkupDate : reminderDewormDate;
+      const setDateValue = type === 'checkup' ? setCheckupDate : setReminderDewormDate;
+      const saveFunction = type === 'checkup' ? saveCheckupDate : saveReminderDewormDate;
+
       return (
           <div className="flex-1 bg-white p-3 rounded-xl border border-gray-100 shadow-sm relative overflow-hidden">
              <div className="flex justify-between items-start mb-2">
@@ -297,18 +322,18 @@ export const PetManager: React.FC<PetManagerProps> = ({ currentUser, pets, onAdd
                  <AlarmClock size={14} className={iconColor} />
              </div>
              
-             {type === 'checkup' && isEditingCheckup ? (
+             {isEditing ? (
                  <div className="flex flex-col space-y-2">
                      <input 
                         type="date" 
                         className="text-xs border rounded p-1"
-                        value={checkupDate}
-                        onChange={(e) => setCheckupDate(e.target.value)}
+                        value={currentDateValue}
+                        onChange={(e) => setDateValue(e.target.value)}
                      />
-                     <button onClick={saveCheckupDate} className="text-xs bg-indigo-600 text-white rounded px-2 py-1">保存</button>
+                     <button onClick={saveFunction} className="text-xs bg-indigo-600 text-white rounded px-2 py-1">保存</button>
                  </div>
              ) : (
-                <div onClick={() => type === 'checkup' && setIsEditingCheckup(true)} className={type === 'checkup' ? "cursor-pointer hover:opacity-70" : ""}>
+                <div onClick={() => setEditing(true)} className="cursor-pointer hover:opacity-70">
                     {date ? (
                         <>
                             <div className="text-lg font-bold text-gray-800 leading-none mb-1">
@@ -327,8 +352,6 @@ export const PetManager: React.FC<PetManagerProps> = ({ currentUser, pets, onAdd
           </div>
       );
   };
-
-  const nextDewormDate = selectedPet && selectedPet.dewormingRecords.length > 0 ? selectedPet.dewormingRecords[0].nextDueDate : undefined;
 
   // --- Render Detail View ---
   if (!selectedPet) return null;
@@ -408,7 +431,7 @@ export const PetManager: React.FC<PetManagerProps> = ({ currentUser, pets, onAdd
 
             {/* Health Reminders */}
             <div className="flex space-x-3">
-                {renderReminder("下次驱虫", nextDewormDate, 'deworm')}
+                {renderReminder("下次驱虫", reminderDewormDate, 'deworm')}
                 {renderReminder("下次体检", selectedPet.nextCheckupDate, 'checkup')}
             </div>
         </div>
