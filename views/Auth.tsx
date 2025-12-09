@@ -49,7 +49,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           <div className="w-20 h-20 bg-white rounded-full mx-auto flex items-center justify-center shadow-md mb-4 text-indigo-600">
             <PawPrint size={40} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">宠友记</h1>
+          <h1 className="text-2xl font-bold text-indigo-900 mb-2">健康管理助手</h1>
           <p className="text-gray-500 text-sm mt-1">您的智能养宠管家</p>
         </div>
 
