@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Pet, User, Post, Comment } from './types';
 import { Navigation } from './components/Navigation';
@@ -7,23 +8,22 @@ import { FoodChecker } from './views/FoodChecker';
 import { Auth } from './views/Auth';
 import { Community } from './views/Community';
 
+/**
+ * App 核心管理组件
+ * 负责全局状态维护（用户、宠物列表、帖子）以及数据本地持久化
+ */
 const App: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [currentView, setCurrentView] = useState('pets');
-  
-  // -- Data State --
-  const [allPets, setAllPets] = useState<Pet[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
+  // 核心状态
+  const [currentUser, setCurrentUser] = useState<User | null>(null); // 当前登录用户
+  const [currentView, setCurrentView] = useState('pets'); // 当前路由/视图
+  const [allPets, setAllPets] = useState<Pet[]>([]); // 所有宠物数据
+  const [posts, setPosts] = useState<Post[]>([]); // 社区帖子数据
 
-  // -- Initialization --
+  // 初始化：从 localStorage 加载保存的数据
   useEffect(() => {
-    // Check login session
     const session = localStorage.getItem('app_current_user');
-    if (session) {
-      setCurrentUser(JSON.parse(session));
-    }
+    if (session) setCurrentUser(JSON.parse(session));
 
-    // Load data
     const savedPets = localStorage.getItem('app_pets');
     if (savedPets) setAllPets(JSON.parse(savedPets));
 
@@ -31,7 +31,7 @@ const App: React.FC = () => {
     if (savedPosts) setPosts(JSON.parse(savedPosts));
   }, []);
 
-  // -- Persistence --
+  // 持久化：当数据发生变化时，保存到本地存储
   useEffect(() => {
     localStorage.setItem('app_pets', JSON.stringify(allPets));
   }, [allPets]);
@@ -40,7 +40,7 @@ const App: React.FC = () => {
     localStorage.setItem('app_posts', JSON.stringify(posts));
   }, [posts]);
 
-  // -- Auth Handlers --
+  // 用户操作处理器
   const handleLogin = (user: User) => {
     setCurrentUser(user);
     localStorage.setItem('app_current_user', JSON.stringify(user));
@@ -52,8 +52,7 @@ const App: React.FC = () => {
     setCurrentView('pets');
   };
 
-  // -- Pet CRUD --
-  // Filter pets for the current user
+  // 宠物管理逻辑：过滤出属于当前用户的宠物
   const userPets = allPets.filter(p => p.ownerId === currentUser?.id);
 
   const handleAddPet = (pet: Pet) => {
@@ -70,7 +69,7 @@ const App: React.FC = () => {
     setAllPets(allPets.filter(p => p.id !== id));
   };
 
-  // -- Community Handlers --
+  // 社区交互逻辑
   const handleAddPost = (content: string) => {
     if (!currentUser) return;
     const newPost: Post = {
@@ -118,10 +117,12 @@ const App: React.FC = () => {
     }));
   };
 
+  // 如果未登录，只渲染登录界面
   if (!currentUser) {
     return <Auth onLogin={handleLogin} />;
   }
 
+  // 根据当前 currentView 切换视图
   const renderView = () => {
     switch (currentView) {
       case 'pets':
@@ -150,16 +151,7 @@ const App: React.FC = () => {
       case 'food':
         return <FoodChecker />;
       default:
-        return (
-          <PetManager 
-            currentUser={currentUser}
-            pets={userPets} 
-            onAddPet={handleAddPet}
-            onUpdatePet={handleUpdatePet}
-            onDeletePet={handleDeletePet}
-            onLogout={handleLogout}
-          />
-        );
+        return null;
     }
   };
 
@@ -168,6 +160,7 @@ const App: React.FC = () => {
       <main className="w-full mx-auto">
         {renderView()}
       </main>
+      {/* 底部导航栏 */}
       <Navigation currentView={currentView} setView={setCurrentView} />
     </div>
   );
